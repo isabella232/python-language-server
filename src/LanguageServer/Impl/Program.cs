@@ -43,63 +43,66 @@ namespace Microsoft.Python.LanguageServer.Server {
 
             var useHTTP = true;
             if (useHTTP) {
-                Console.Error.WriteLine("http listening");
+                Console.Error.WriteLine("# Listening");
                 HttpListener httpListener = new HttpListener();
                 httpListener.Prefixes.Add("http://localhost:4288/");
                 httpListener.Start();
-                Mutex signal = new Mutex();
-                while (signal.WaitOne()) {
-                    Console.Error.WriteLine("# Loop11");
-                    await ListenForConnection(httpListener,signal);
-                                    System.Threading.Thread.Sleep(1000);
-                                    Console.Error.WriteLine("# Loop");
-                }
+                ListenForConnections(httpListener);
             } else {
                 using (var cin = Console.OpenStandardInput())
                 using (var cout = Console.OpenStandardOutput()) {
                     HandleConnection(new JsonRpc(cout, cin));
                 }
             }
+            Thread.Sleep(Timeout.Infinite);
         }
 
-        private static async System.Threading.Tasks.Task ListenForConnection(HttpListener httpListener, Mutex signal) {
-            HttpListenerContext context =  await httpListener.GetContextAsync();
-            Console.Error.WriteLine("# HTTP connected");
-            if (context.Request.IsWebSocketRequest) {
-                HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
-                WebSocket webSocket = webSocketContext.WebSocket;
-                if (webSocket.State == WebSocketState.Open) {
-                    Console.Error.WriteLine("# WebSocket connected");
-                    await HandleConnection(new JsonRpc(new WebSocketMessageHandler(webSocket)));
+        private static async System.Threading.Tasks.Task ListenForConnections(HttpListener httpListener) {
+            while (true) {
+                HttpListenerContext context = await httpListener.GetContextAsync();
+                Console.Error.WriteLine("# HTTP connected");
+                if (context.Request.IsWebSocketRequest) {
+                    HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
+                    WebSocket webSocket = webSocketContext.WebSocket;
+                    if (webSocket.State == WebSocketState.Open) {
+                        Console.Error.WriteLine("# WebSocket connected");
+                        HandleConnection(new JsonRpc(new WebSocketMessageHandler(webSocket)));
+                        Console.Error.WriteLine("# WebSocket disconnected");
+                    }
+                } else {
+                    context.Response.StatusCode = 426; // HTTP 426 Upgrade Required
+                    context.Response.Close();
                 }
-            } else {
-                context.Response.StatusCode = 426; // HTTP 426 Upgrade Required
-                context.Response.Close();
+                Console.Error.WriteLine("# WebSocket LOOP");
             }
-             signal.ReleaseMutex();
         }
 
         private async static System.Threading.Tasks.Task HandleConnection(JsonRpc rpc) {
             using (var server = new Implementation.LanguageServer()) {
-            await server._server.LoadExtensionAsync(new PythonAnalysisExtensionParams {
-                assembly = typeof(GetAllExtensionProvider).Assembly.FullName,
-                typeName = typeof(GetAllExtensionProvider).FullName,
-                properties = new Dictionary<string, object> { ["typeid"] = BuiltinTypeId.Int.ToString() }
-            }, null, CancellationToken.None);
-
+                Console.Error.WriteLine("# Loading extension...");
+                await server._server.LoadExtensionAsync(new PythonAnalysisExtensionParams {
+                    assembly = typeof(GetAllExtensionProvider).Assembly.FullName,
+                    typeName = typeof(GetAllExtensionProvider).FullName,
+                    properties = new Dictionary<string, object> { ["typeid"] = BuiltinTypeId.Int.ToString() }
+                }, null, CancellationToken.None);
+                Console.Error.WriteLine("# Loaded!");
 
                 rpc.AddLocalRpcTarget(server);
                 rpc.SynchronizationContext = new SingleThreadSynchronizationContext();
+                Console.Error.WriteLine("# Loaded! A");
                 rpc.JsonSerializer.Converters.Add(new UriConverter());
                 using (var services = new ServiceManager()) {
                     services.AddService(new UIService(rpc));
                     services.AddService(new ProgressService(rpc));
                     services.AddService(new TelemetryService(rpc));
                     var token = server.Start(services, rpc);
+                    Console.Error.WriteLine("# Loaded! B");
                     rpc.StartListening();
 
                     // Wait for the "exit" request, it will terminate the process.
+                    Console.Error.WriteLine("# Loaded! C");
                     token.WaitHandle.WaitOne();
+                    Console.Error.WriteLine("# Loaded! D");
                 }
             }
         }
