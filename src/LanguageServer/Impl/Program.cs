@@ -23,29 +23,75 @@ using System.Text;
 using System.Threading;
 using Microsoft.Python.LanguageServer.Services;
 using Microsoft.PythonTools.Analysis.Infrastructure;
+using Microsoft.PythonTools.LanguageServer.Services;
 using Newtonsoft.Json;
 using StreamJsonRpc;
+using InstallDependenciesExtension;
+
+using System.Collections.Generic;
+using Microsoft.Python.LanguageServer;
+using Microsoft.Python.LanguageServer.Extensions;
+using Microsoft.Python.LanguageServer.Implementation;
+using Microsoft.PythonTools.Interpreter;
+using Microsoft.PythonTools.Interpreter.Ast;
+using Microsoft.PythonTools.Parsing.Ast;
 
 namespace Microsoft.Python.LanguageServer.Server {
     internal static class Program {
         public static void Main(string[] args) {
             CheckDebugMode();
-            using (CoreShell.Create()) {
-                var services = CoreShell.Current.ServiceManager;
 
+            var useHTTP = true;
+            if (useHTTP) {
                 Console.Error.WriteLine("http listening");
                 HttpListener httpListener = new HttpListener();
                 httpListener.Prefixes.Add("http://localhost:4288/");
                 httpListener.Start();
-                ReceiveConnection(httpListener);
-
+                Mutex signal = new Mutex();
+                while (signal.WaitOne()) {
+                    Console.Error.WriteLine("# Loop11");
+                    await ListenForConnection(httpListener,signal);
+                                    System.Threading.Thread.Sleep(1000);
+                                    Console.Error.WriteLine("# Loop");
+                }
+            } else {
                 using (var cin = Console.OpenStandardInput())
-                using (var cout = Console.OpenStandardOutput())
-                using (var server = new Implementation.LanguageServer())
-                using (var rpc = new JsonRpc(cout, cin, server)) {
-                    rpc.SynchronizationContext = new SingleThreadSynchronizationContext();
-                    rpc.JsonSerializer.Converters.Add(new UriConverter());
+                using (var cout = Console.OpenStandardOutput()) {
+                    HandleConnection(new JsonRpc(cout, cin));
+                }
+            }
+        }
 
+        private static async System.Threading.Tasks.Task ListenForConnection(HttpListener httpListener, Mutex signal) {
+            HttpListenerContext context =  await httpListener.GetContextAsync();
+            Console.Error.WriteLine("# HTTP connected");
+            if (context.Request.IsWebSocketRequest) {
+                HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
+                WebSocket webSocket = webSocketContext.WebSocket;
+                if (webSocket.State == WebSocketState.Open) {
+                    Console.Error.WriteLine("# WebSocket connected");
+                    await HandleConnection(new JsonRpc(new WebSocketMessageHandler(webSocket)));
+                }
+            } else {
+                context.Response.StatusCode = 426; // HTTP 426 Upgrade Required
+                context.Response.Close();
+            }
+             signal.ReleaseMutex();
+        }
+
+        private async static System.Threading.Tasks.Task HandleConnection(JsonRpc rpc) {
+            using (var server = new Implementation.LanguageServer()) {
+            await server._server.LoadExtensionAsync(new PythonAnalysisExtensionParams {
+                assembly = typeof(GetAllExtensionProvider).Assembly.FullName,
+                typeName = typeof(GetAllExtensionProvider).FullName,
+                properties = new Dictionary<string, object> { ["typeid"] = BuiltinTypeId.Int.ToString() }
+            }, null, CancellationToken.None);
+
+
+                rpc.AddLocalRpcTarget(server);
+                rpc.SynchronizationContext = new SingleThreadSynchronizationContext();
+                rpc.JsonSerializer.Converters.Add(new UriConverter());
+                using (var services = new ServiceManager()) {
                     services.AddService(new UIService(rpc));
                     services.AddService(new ProgressService(rpc));
                     services.AddService(new TelemetryService(rpc));
@@ -68,19 +114,6 @@ namespace Microsoft.Python.LanguageServer.Server {
                 }
             }
 #endif
-        }
-
-        public static async System.Threading.Tasks.Task ReceiveConnection(HttpListener httpListener) {
-            HttpListenerContext context = await httpListener.GetContextAsync();
-            if (context.Request.IsWebSocketRequest) {
-                HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
-                WebSocket webSocket = webSocketContext.WebSocket;
-                while (webSocket.State == WebSocketState.Open) {
-                    Console.Error.WriteLine("Hello, world websocket is ready");
-                    await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("Hello world")),
-                        WebSocketMessageType.Text, true, CancellationToken.None);
-                }
-            }
         }
     }
 
