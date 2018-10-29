@@ -17,6 +17,10 @@
 // #define WAIT_FOR_DEBUGGER
 
 using System;
+using System.Net;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
 using Microsoft.Python.LanguageServer.Services;
 using Microsoft.PythonTools.Analysis.Infrastructure;
 using Newtonsoft.Json;
@@ -28,6 +32,12 @@ namespace Microsoft.Python.LanguageServer.Server {
             CheckDebugMode();
             using (CoreShell.Create()) {
                 var services = CoreShell.Current.ServiceManager;
+
+                Console.Error.WriteLine("http listening");
+                HttpListener httpListener = new HttpListener();
+                httpListener.Prefixes.Add("http://localhost:4288/");
+                httpListener.Start();
+                ReceiveConnection(httpListener);
 
                 using (var cin = Console.OpenStandardInput())
                 using (var cout = Console.OpenStandardOutput())
@@ -58,6 +68,19 @@ namespace Microsoft.Python.LanguageServer.Server {
                 }
             }
 #endif
+        }
+
+        public static async System.Threading.Tasks.Task ReceiveConnection(HttpListener httpListener) {
+            HttpListenerContext context = await httpListener.GetContextAsync();
+            if (context.Request.IsWebSocketRequest) {
+                HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
+                WebSocket webSocket = webSocketContext.WebSocket;
+                while (webSocket.State == WebSocketState.Open) {
+                    Console.Error.WriteLine("Hello, world websocket is ready");
+                    await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("Hello world")),
+                        WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+            }
         }
     }
 

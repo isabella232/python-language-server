@@ -29,7 +29,7 @@ using Microsoft.PythonTools.Parsing;
 using Microsoft.PythonTools.Parsing.Ast;
 
 namespace Microsoft.Python.LanguageServer.Implementation {
-    class ParseQueue: IDisposable {
+    class ParseQueue : IDisposable {
         public const string PythonParserSource = "Python (parser)";
         private const string TaskCommentSource = "Task comment";
 

@@ -106,7 +106,7 @@ namespace Microsoft.PythonTools.Interpreter.Ast {
             foreach (var searchPath in searchPaths.MaybeEnumerate()) {
                 IReadOnlyCollection<string> packages = null;
                 if (File.Exists(searchPath)) {
-                    packages = GetPackagesFromZipFile(searchPath, cancellationToken);
+                    packages = GetPackagesFromZipFile(searchPath, cancellationToken); // TODO!(sqs): supports zip file?
                 } else if (Directory.Exists(searchPath)) {
                     packages = await Task.Run(() => GetPackagesFromDirectory(searchPath, cancellationToken)).ConfigureAwait(false);
                 }

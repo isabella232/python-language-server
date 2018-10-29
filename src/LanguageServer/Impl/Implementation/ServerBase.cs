@@ -120,12 +120,12 @@ namespace Microsoft.Python.LanguageServer.Implementation {
         #region Server Requests
         public event EventHandler<ShowMessageEventArgs> OnShowMessage;
 
-        public void ShowMessage(MessageType type, string message) 
+        public void ShowMessage(MessageType type, string message)
             => OnShowMessage?.Invoke(this, new ShowMessageEventArgs { type = type, message = message });
 
         public event EventHandler<LogMessageEventArgs> OnLogMessage;
 
-        public void LogMessage(MessageType type, string message) 
+        public void LogMessage(MessageType type, string message)
             => OnLogMessage?.Invoke(this, new LogMessageEventArgs { type = type, message = message });
 
         [Obsolete]
