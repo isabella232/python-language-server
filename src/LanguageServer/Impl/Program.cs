@@ -47,17 +47,16 @@ namespace Microsoft.Python.LanguageServer.Server {
                 HttpListener httpListener = new HttpListener();
                 httpListener.Prefixes.Add("http://localhost:4288/");
                 httpListener.Start();
-                ListenForConnections(httpListener);
+                ListenForConnectionsAsync(httpListener).GetAwaiter().GetResult();
             } else {
                 using (var cin = Console.OpenStandardInput())
                 using (var cout = Console.OpenStandardOutput()) {
-                    HandleConnection(new JsonRpc(cout, cin));
+                    HandleConnectionAsync(new JsonRpc(cout, cin)).GetAwaiter().GetResult();
                 }
             }
-            Thread.Sleep(Timeout.Infinite);
         }
 
-        private static async System.Threading.Tasks.Task ListenForConnections(HttpListener httpListener) {
+        private static async System.Threading.Tasks.Task ListenForConnectionsAsync(HttpListener httpListener) {
             while (true) {
                 HttpListenerContext context = await httpListener.GetContextAsync();
                 Console.Error.WriteLine("# HTTP connected");
@@ -66,18 +65,26 @@ namespace Microsoft.Python.LanguageServer.Server {
                     WebSocket webSocket = webSocketContext.WebSocket;
                     if (webSocket.State == WebSocketState.Open) {
                         Console.Error.WriteLine("# WebSocket connected");
-                        HandleConnection(new JsonRpc(new WebSocketMessageHandler(webSocket)));
-                        Console.Error.WriteLine("# WebSocket disconnected");
+                        using (var handler = new WebSocketMessageHandler(webSocket)) {
+                            JsonRpc rpc = new JsonRpc(handler);
+                            rpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) => {
+                                Console.Error.WriteLine("## CLOSED");
+                                rpc.Dispose();
+                            };
+                            HandleConnectionAsync(rpc);
+                            Console.Error.WriteLine("# WebSocket disconnected");
+                        }
                     }
                 } else {
                     context.Response.StatusCode = 426; // HTTP 426 Upgrade Required
                     context.Response.Close();
                 }
                 Console.Error.WriteLine("# WebSocket LOOP");
+                System.Threading.Thread.Sleep(1000);
             }
         }
 
-        private async static System.Threading.Tasks.Task HandleConnection(JsonRpc rpc) {
+        private async static System.Threading.Tasks.Task HandleConnectionAsync(JsonRpc rpc) {
             using (var server = new Implementation.LanguageServer()) {
                 Console.Error.WriteLine("# Loading extension...");
                 await server._server.LoadExtensionAsync(new PythonAnalysisExtensionParams {
@@ -101,7 +108,7 @@ namespace Microsoft.Python.LanguageServer.Server {
 
                     // Wait for the "exit" request, it will terminate the process.
                     Console.Error.WriteLine("# Loaded! C");
-                    token.WaitHandle.WaitOne();
+                    WaitHandle.WaitAny(rpc.DisconnectedToken, token.WaitHandle);
                     Console.Error.WriteLine("# Loaded! D");
                 }
             }

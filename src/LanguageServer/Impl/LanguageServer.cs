@@ -84,6 +84,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
         }
 
         public void Dispose() {
+            Console.Error.WriteLine("## DISPOSE");
             _disposables.TryDispose();
             _server.Dispose();
         }
