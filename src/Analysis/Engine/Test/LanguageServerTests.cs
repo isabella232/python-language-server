@@ -391,7 +391,7 @@ def f(a = 2, b): pass
             }
         }
 
-        class GetAllExtensionProvider : ILanguageServerExtensionProvider {
+        class InstallDependenciesExtensionProvider : ILanguageServerExtensionProvider {
             public Task<ILanguageServerExtension> CreateAsync(IPythonLanguageServer server, IReadOnlyDictionary<string, object> properties, CancellationToken cancellationToken) {
                 return Task.FromResult<ILanguageServerExtension>(new GetAllExtension((Server)server, properties));
             }
@@ -442,8 +442,8 @@ def f(a = 2, b): pass
             var u = await AddModule(s, "x = 1\ny = 2\nz = 'abc'");
 
             await s.LoadExtensionAsync(new PythonAnalysisExtensionParams {
-                assembly = typeof(GetAllExtensionProvider).Assembly.FullName,
-                typeName = typeof(GetAllExtensionProvider).FullName,
+                assembly = typeof(InstallDependenciesExtensionProvider).Assembly.FullName,
+                typeName = typeof(InstallDependenciesExtensionProvider).FullName,
                 properties = new Dictionary<string, object> { ["typeid"] = BuiltinTypeId.Int.ToString() }
             }, null, CancellationToken.None);
 
@@ -461,8 +461,8 @@ def f(a = 2, b): pass
             res.Should().BeNull();
 
             await s.LoadExtensionAsync(new PythonAnalysisExtensionParams {
-                assembly = typeof(GetAllExtensionProvider).Assembly.FullName,
-                typeName = typeof(GetAllExtensionProvider).FullName,
+                assembly = typeof(InstallDependenciesExtensionProvider).Assembly.FullName,
+                typeName = typeof(InstallDependenciesExtensionProvider).FullName,
                 properties = new Dictionary<string, object> { ["typeid"] = BuiltinTypeId_Str.ToString() }
             }, null, CancellationToken.None);
 

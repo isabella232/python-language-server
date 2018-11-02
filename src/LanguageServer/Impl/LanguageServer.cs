@@ -80,11 +80,14 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                 .Add(_prioritizer)
                 .Add(() => _pathsWatcher?.Dispose());
 
+            rpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) => {
+                Exit();
+            };
+
             return _sessionTokenSource.Token;
         }
 
         public void Dispose() {
-            Console.Error.WriteLine("## DISPOSE");
             _disposables.TryDispose();
             _server.Dispose();
         }

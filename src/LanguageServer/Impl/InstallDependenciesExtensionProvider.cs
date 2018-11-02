@@ -33,8 +33,16 @@ using Microsoft.PythonTools.Interpreter.Ast;
 using Microsoft.PythonTools.Parsing.Ast;
 
 namespace InstallDependenciesExtension {
-        class GetAllExtensionProvider : ILanguageServerExtensionProvider {
+        class InstallDependenciesExtensionProvider : ILanguageServerExtensionProvider {
             public Task<ILanguageServerExtension> CreateAsync(IPythonLanguageServer server, IReadOnlyDictionary<string, object> properties, CancellationToken cancellationToken) {
+                Console.Error.WriteLine("### Hello from extension");
+                if (server is Server s) {
+                s.OnCommand += (object sender, CommandEventArgs e) => {
+                    Console.Error.WriteLine("### COMMAND");
+                };
+                } else {
+                    Console.Error.WriteLine("### NOT PYTHON");
+                }
                 return Task.FromResult<ILanguageServerExtension>(new GetAllExtension((Server)server, properties));
             }
 
@@ -54,6 +62,7 @@ namespace InstallDependenciesExtension {
                 public void Dispose() { }
 
                 public Task<IReadOnlyDictionary<string, object>> ExecuteCommand(string command, IReadOnlyDictionary<string, object> properties, CancellationToken token) {
+                    Console.Error.WriteLine("ExecuteCommand!");
                     if (properties == null) {
                         return null;
                     }

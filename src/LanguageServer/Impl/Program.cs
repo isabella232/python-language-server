@@ -47,7 +47,7 @@ namespace Microsoft.Python.LanguageServer.Server {
                 HttpListener httpListener = new HttpListener();
                 httpListener.Prefixes.Add("http://localhost:4288/");
                 httpListener.Start();
-                ListenForConnectionsAsync(httpListener).GetAwaiter().GetResult();
+                ListenWebSocketAsync(httpListener).GetAwaiter().GetResult();
             } else {
                 using (var cin = Console.OpenStandardInput())
                 using (var cout = Console.OpenStandardOutput()) {
@@ -56,7 +56,7 @@ namespace Microsoft.Python.LanguageServer.Server {
             }
         }
 
-        private static async System.Threading.Tasks.Task ListenForConnectionsAsync(HttpListener httpListener) {
+        private static async System.Threading.Tasks.Task ListenWebSocketAsync(HttpListener httpListener) {
             while (true) {
                 HttpListenerContext context = await httpListener.GetContextAsync();
                 Console.Error.WriteLine("# HTTP connected");
@@ -64,52 +64,43 @@ namespace Microsoft.Python.LanguageServer.Server {
                     HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
                     WebSocket webSocket = webSocketContext.WebSocket;
                     if (webSocket.State == WebSocketState.Open) {
-                        Console.Error.WriteLine("# WebSocket connected");
-                        using (var handler = new WebSocketMessageHandler(webSocket)) {
-                            JsonRpc rpc = new JsonRpc(handler);
-                            rpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) => {
-                                Console.Error.WriteLine("## CLOSED");
-                                rpc.Dispose();
-                            };
-                            HandleConnectionAsync(rpc);
-                            Console.Error.WriteLine("# WebSocket disconnected");
-                        }
+                        HandleWebSocketConnectionAsync(webSocket);
                     }
                 } else {
                     context.Response.StatusCode = 426; // HTTP 426 Upgrade Required
                     context.Response.Close();
                 }
-                Console.Error.WriteLine("# WebSocket LOOP");
-                System.Threading.Thread.Sleep(1000);
             }
+        }
+
+        private async static System.Threading.Tasks.Task HandleWebSocketConnectionAsync(WebSocket webSocket) {
+            Console.Error.WriteLine("# WebSocket connected");
+            using (var handler = new WebSocketMessageHandler(webSocket)) {
+                using (JsonRpc rpc = new JsonRpc(handler)) {
+                    await HandleConnectionAsync(rpc);
+                }
+            }
+            Console.Error.WriteLine("# WebSocket disconnected");
         }
 
         private async static System.Threading.Tasks.Task HandleConnectionAsync(JsonRpc rpc) {
             using (var server = new Implementation.LanguageServer()) {
-                Console.Error.WriteLine("# Loading extension...");
                 await server._server.LoadExtensionAsync(new PythonAnalysisExtensionParams {
-                    assembly = typeof(GetAllExtensionProvider).Assembly.FullName,
-                    typeName = typeof(GetAllExtensionProvider).FullName,
+                    assembly = typeof(InstallDependenciesExtensionProvider).Assembly.FullName,
+                    typeName = typeof(InstallDependenciesExtensionProvider).FullName,
                     properties = new Dictionary<string, object> { ["typeid"] = BuiltinTypeId.Int.ToString() }
                 }, null, CancellationToken.None);
-                Console.Error.WriteLine("# Loaded!");
 
                 rpc.AddLocalRpcTarget(server);
                 rpc.SynchronizationContext = new SingleThreadSynchronizationContext();
-                Console.Error.WriteLine("# Loaded! A");
                 rpc.JsonSerializer.Converters.Add(new UriConverter());
                 using (var services = new ServiceManager()) {
                     services.AddService(new UIService(rpc));
                     services.AddService(new ProgressService(rpc));
                     services.AddService(new TelemetryService(rpc));
                     var token = server.Start(services, rpc);
-                    Console.Error.WriteLine("# Loaded! B");
                     rpc.StartListening();
-
-                    // Wait for the "exit" request, it will terminate the process.
-                    Console.Error.WriteLine("# Loaded! C");
-                    WaitHandle.WaitAny(rpc.DisconnectedToken, token.WaitHandle);
-                    Console.Error.WriteLine("# Loaded! D");
+                    token.WaitHandle.WaitOne();
                 }
             }
         }
