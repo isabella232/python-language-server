@@ -172,6 +172,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
         public override async Task DidOpenTextDocument(DidOpenTextDocumentParams @params, CancellationToken token) {
             _disposableBag.ThrowIfDisposed();
             TraceMessage($"Opening document {@params.textDocument.uri}");
+            Console.Error.WriteLine($"Open {@params.textDocument.uri}");
 
             _editorFiles.Open(@params.textDocument.uri);
             var entry = ProjectFiles.GetEntry(@params.textDocument.uri, throwIfMissing: false);
@@ -500,6 +501,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                 return item;
             }
 
+//
             string[] aliases = null;
             var path = GetLocalPath(documentUri);
             if (fromSearchPath != null) {

@@ -65,8 +65,10 @@ namespace Microsoft.Python.LanguageServer.Implementation {
 
             var hover = await GetSelfHoverAsync(expr, analysis, tree, @params.position, cancellationToken);
             if (hover != null && hover != EmptyHover) {
+                TraceMessage($"Have hover");
                 return hover;
             }
+            TraceMessage($"Hover aaaaa");
 
             // First try values from expression. This works for the import statement most of the time.
             var values = analysis.GetValues(expr, @params.position, null).ToList();
@@ -76,6 +78,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                     return hover;
                 }
             }
+            TraceMessage($"Hover bbbbb");
 
             if (values.Count > 0) {
                 string originalExpr;
@@ -99,6 +102,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                 };
                 return res;
             }
+            TraceMessage($"Hover ccccc");
 
             return EmptyHover;
         }

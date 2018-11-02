@@ -43,14 +43,14 @@ namespace InstallDependenciesExtension {
                 } else {
                     Console.Error.WriteLine("### NOT PYTHON");
                 }
-                return Task.FromResult<ILanguageServerExtension>(new GetAllExtension((Server)server, properties));
+                return Task.FromResult<ILanguageServerExtension>(new InstallDependenciesExtension((Server)server, properties));
             }
 
-            private class GetAllExtension : ILanguageServerExtension {
+            private class InstallDependenciesExtension : ILanguageServerExtension {
                 private readonly BuiltinTypeId _typeId;
                 private readonly Server _server;
 
-                public GetAllExtension(Server server, IReadOnlyDictionary<string, object> properties) {
+                public InstallDependenciesExtension(Server server, IReadOnlyDictionary<string, object> properties) {
                     _server = server;
                     if (!Enum.TryParse((string)properties["typeid"], out _typeId)) {
                         throw new ArgumentException("typeid was not valid");
