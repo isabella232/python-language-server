@@ -50,9 +50,10 @@ namespace Microsoft.Python.LanguageServer.Services {
         }
 
         public Task LogMessage(string message, MessageType messageType) {
-            if(messageType > _logLevel) {
-                return Task.CompletedTask;
-            }
+            Console.Error.WriteLine(message);
+             if(messageType > _logLevel) {
+                 return Task.CompletedTask;
+             }
             var parameters = new LogMessageParams {
                 type = messageType,
                 message = message
