@@ -33,6 +33,11 @@ namespace Microsoft.PythonTools.Analysis.Infrastructure {
                 throw new FileNotFoundException("Could not launch process", filename);
             }
 
+            // HACK(sqs)
+            if (filename != System.Environment.GetEnvironmentVariable("ALLOW_PYTHON_EXECUTABLE")) {
+                throw new InvalidOperationException($"Refusing to execute {filename} (only ALLOW_PYTHON_EXECUTABLE env var is allowed)");
+            }
+
             _psi = new ProcessStartInfo(
                 filename,
                 arguments.AsQuotedArguments()

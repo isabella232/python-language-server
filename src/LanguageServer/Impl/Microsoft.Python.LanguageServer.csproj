@@ -3,7 +3,11 @@
         <TargetFramework>netcoreapp2.1</TargetFramework>
         <RootNamespace>Microsoft.Python.LanguageServer</RootNamespace>
         <AssemblyName>Microsoft.Python.LanguageServer</AssemblyName>
+        <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
     </PropertyGroup>
+    <ItemGroup>
+        <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
+    </ItemGroup> 
     <Import Project="..\..\..\build\NetStandard.settings" />
     <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
     <PropertyGroup>

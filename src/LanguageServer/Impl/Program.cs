@@ -49,11 +49,11 @@ namespace Microsoft.Python.LanguageServer.Server {
             messageFormatter.JsonSerializer.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
             messageFormatter.JsonSerializer.Converters.Add(new UriConverter());
 
-            var useHTTP = true;
-            if (useHTTP) {
-                Console.Error.WriteLine("# Listening");
+            var listenAddr = System.Environment.GetEnvironmentVariable("WEBSOCKET_ADDR");
+            if (listenAddr != null) {
+                Console.Error.WriteLine($"# WebSocket: listening on {listenAddr}");
                 HttpListener httpListener = new HttpListener();
-                httpListener.Prefixes.Add("http://localhost:4288/");
+                httpListener.Prefixes.Add(listenAddr);
                 httpListener.Start();
                 ListenWebSocketAsync(httpListener, messageFormatter).GetAwaiter().GetResult();
             } else {

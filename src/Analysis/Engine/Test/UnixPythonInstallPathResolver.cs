@@ -115,6 +115,11 @@ namespace Microsoft.PythonTools.Analysis {
 
         private static string[] RunPythonAndGetOutput(string pythonFilePath, string arguments) {
             try {
+                // HACK(sqs)
+                if (pythonFilePath != System.Environment.GetEnvironmentVariable("ALLOW_PYTHON_EXECUTABLE")) {
+                    throw new InvalidOperationException($"Refusing to execute {pythonFilePath} (only ALLOW_PYTHON_EXECUTABLE env var is allowed)");
+                }
+
                 var processStartInfo = new ProcessStartInfo {
                     FileName = pythonFilePath,
                     Arguments = arguments,
