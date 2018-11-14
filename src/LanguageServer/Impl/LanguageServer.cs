@@ -85,6 +85,10 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                 .Add(() => _pathsWatcher?.Dispose())
                 .Add(() => _rpc.TraceSource.Listeners.Remove(rpcTraceListener));
 
+            rpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) => {
+                Exit();
+            };
+
             return _sessionTokenSource.Token;
         }
 
