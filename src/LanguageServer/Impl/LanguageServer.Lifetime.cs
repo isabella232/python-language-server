@@ -73,7 +73,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
             _sessionTokenSource.Cancel();
             _idleTimeTracker.Dispose();
             // Per https://microsoft.github.io/language-server-protocol/specification#exit
-            Environment.Exit(_shutdown ? 0 : 1);
+            // Environment.Exit(_shutdown ? 0 : 1);
         }
 
         private Task LoadDirectoryFiles() {
