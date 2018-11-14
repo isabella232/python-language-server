@@ -114,7 +114,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
         }
 
         private void Analysis_UnhandledException(object sender, UnhandledExceptionEventArgs e) {
-            Debug.Fail(e.ExceptionObject.ToString());
+            // Debug.Fail(e.ExceptionObject.ToString()); // TODO!(sqs): keep running
             LogMessage(MessageType.Error, e.ExceptionObject.ToString());
         }
 
