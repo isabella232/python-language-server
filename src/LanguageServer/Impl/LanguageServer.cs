@@ -35,7 +35,7 @@ namespace Microsoft.Python.LanguageServer.Implementation {
     /// </summary>
     public sealed partial class LanguageServer : IDisposable {
         private readonly DisposableBag _disposables = new DisposableBag(nameof(LanguageServer));
-        private readonly Server _server = new Server();
+        public readonly Server _server = new Server();
         private readonly CancellationTokenSource _sessionTokenSource = new CancellationTokenSource();
         private readonly RestTextConverter _textConverter = new RestTextConverter();
         private readonly Dictionary<Uri, Diagnostic[]> _pendingDiagnostic = new Dictionary<Uri, Diagnostic[]>();

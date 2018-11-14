@@ -78,8 +78,10 @@ namespace Microsoft.Python.LanguageServer.Implementation {
 
         private Task LoadDirectoryFiles() {
             string rootDir = null;
-            if (_initParams.rootUri != null) {
-                rootDir = _initParams.rootUri.ToAbsolutePath();
+            // TODO!(sqs): get rootUri from Server because we modify it there in DoInitializeAsync., note this does
+            // NOT use _initParams.rootPath like the others
+            if (_server.GetInitializeResult().rootUri != null) {
+                rootDir = _server.GetInitializeResult().rootUri.ToAbsolutePath();
             } else if (!string.IsNullOrEmpty(_initParams.rootPath)) {
                 rootDir = PathUtils.NormalizePath(_initParams.rootPath);
             }

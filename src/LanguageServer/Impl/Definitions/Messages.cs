@@ -55,6 +55,12 @@ namespace Microsoft.Python.LanguageServer {
     [Serializable]
     public struct InitializeResult {
         public ServerCapabilities? capabilities;
+
+        /// <summary>
+        /// The rootUri for the workspace. If the initialize request's rootUri scheme was "tmp", this is the URI of
+        /// the automatically generated temporary directory.
+        /// </summary>
+        public Uri rootUri;
     }
 
     [Serializable]

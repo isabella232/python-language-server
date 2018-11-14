@@ -156,7 +156,8 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                     firstTriggerCharacter = "\n",
                     moreTriggerCharacter = new[] { ";", ":" }
                 },
-            }
+            },
+            rootUri = new Uri(_rootDir, UriKind.Absolute),
         };
 
         public override async Task<InitializeResult> Initialize(InitializeParams @params, CancellationToken cancellationToken) {
@@ -368,6 +369,23 @@ namespace Microsoft.Python.LanguageServer.Implementation {
         private async Task DoInitializeAsync(InitializeParams @params, CancellationToken token) {
             _disposableBag.ThrowIfDisposed();
 
+            if (@params.rootUri != null) {
+                // If the rootUri's scheme is "tmp", then create a new temporary directory and use that as the
+                // rootUri. It will be returned to the client in the InitializeResult. The client should use that
+                // rootUri as the prefix for all documents.
+                if (@params.rootUri.Scheme == "tmp") {
+                    var tempRootDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                    Directory.CreateDirectory(tempRootDir);
+                    _disposableBag.Add(() => Directory.Delete(tempRootDir, true));
+                    _rootDir = tempRootDir;
+                    @params.rootUri = new Uri(_rootDir, UriKind.Absolute);
+                } else {
+                    _rootDir = @params.rootUri.ToAbsolutePath();
+                }
+            } else if (!string.IsNullOrEmpty(@params.rootPath)) {
+                _rootDir = PathUtils.NormalizePath(@params.rootPath);
+            }
+
             Analyzer = await AnalysisQueue.ExecuteInQueueAsync(ct => CreateAnalyzer(@params.initializationOptions.interpreter, token), AnalysisPriority.High);
 
             _disposableBag.ThrowIfDisposed();
@@ -384,12 +402,6 @@ namespace Microsoft.Python.LanguageServer.Implementation {
             _displayTextBuilder = DocumentationBuilder.Create(DisplayOptions);
 
             DisplayStartupInfo();
-
-            if (@params.rootUri != null) {
-                _rootDir = @params.rootUri.ToAbsolutePath();
-            } else if (!string.IsNullOrEmpty(@params.rootPath)) {
-                _rootDir = PathUtils.NormalizePath(@params.rootPath);
-            }
 
             Analyzer.SetRoot(_rootDir);
             Analyzer.SetSearchPaths(@params.initializationOptions.searchPaths.MaybeEnumerate());
