@@ -429,7 +429,12 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                     uri = kvp.Key,
                     diagnostics = kvp.Value.Where(d => d.severity != DiagnosticSeverity.Unspecified).ToArray()
                 };
-                _rpc.NotifyWithParameterObjectAsync("textDocument/publishDiagnostics", parameters).DoNotWait();
+
+                try {
+                    _rpc.NotifyWithParameterObjectAsync("textDocument/publishDiagnostics", parameters).DoNotWait();
+                } catch (ConnectionLostException e) {
+                    // Ignore the lost connection.
+                }
             }
         }
 
